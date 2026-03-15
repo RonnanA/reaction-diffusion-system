@@ -4,7 +4,7 @@ A real-time reaction-diffusion simulation built (from scratch) in C, using the G
 
 Two virtual chemicals (A and B) interact across a grid. A acts as fuel, B as a catalyst. The result is a continuous organic pattern that looks surprisingly alive for extremely simple math.
 
-![](assets/rds-demo.jpg)
+![demo](assets/rds-demo.JPG)
 
 ---
 
