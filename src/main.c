@@ -1,47 +1,66 @@
 #include <stdio.h>
-//#include <stdlib.h>
-//#include <time.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-//#define WIDTH 900
-//#define HEIGHT 600
-#define ROWS 5
-#define COLS 5
+#define WIDTH 700
+#define HEIGHT 400
+#define ROWS HEIGHT
+#define COLS WIDTH
+
 #define DIFF_A 0.2097
 #define DIFF_B 0.105
-#define FEED 0.055
+#define FEED 0.054
 #define KILL 0.062
 
+// Define arrays and pixel buffer
 float A[ROWS][COLS];
 float B[ROWS][COLS];
 float Anext[ROWS][COLS];
 float Bnext[ROWS][COLS];
+Uint32 pixels[ROWS * COLS];
 
 
-void printArray(float arr[ROWS][COLS], const char *name){
-    printf("%s", name);
-    for(int i = 0; i < ROWS; i++){
-        for(int j = 0; j < COLS; j++){
-            printf("%.1f", arr[i][j]);
-            printf("%s", " ");
+void initialize_arrays(){
+    // Initialize arrays
+    srand(time(NULL));
+    for(int r = 0; r < ROWS; r++){
+        for(int c = 0; c < COLS; c++){
+            A[r][c] = 1.0;
+            B[r][c] = 0.0;
+            Anext[r][c] = 0.0;
+            Bnext[r][c] = 0.0;
         }
-        printf("\n");
+    }
+
+    // Random seeding of seeds
+    int numSeeds = 10;
+    for(int i = 0; i < numSeeds; i++){
+        int centerR = (rand() % (ROWS - 20)) + 10;
+        int centerC = (rand() % (COLS - 20)) + 10;
+        for(int r = centerR - 10; r < centerR + 10; r++){
+            for(int c = centerC - 10; c < centerC + 10; c++){
+                A[r][c] = 0.5;
+                B[r][c] = 0.5;
+            }
+        }
     }
 }
 
-float getLaplacian(float arr[ROWS][COLS], int x, int y){
-    float center = arr[x][y];
-    float up = arr[(x-1 + ROWS) % ROWS][y];
-    float down = arr[(x+1) % ROWS][y];
-    float left = arr[x][(y-1 + COLS) % COLS];
-    float right = arr[x][(y+1) % COLS];
+float getLaplacian(float arr[ROWS][COLS], int r, int c){
+    float center = arr[r][c];
+    float up = arr[(r-1 + ROWS) % ROWS][c];
+    float down = arr[(r+1) % ROWS][c];
+    float left = arr[r][(c-1 + COLS) % COLS];
+    float right = arr[r][(c+1) % COLS];
     
     return up + down + left + right - (4.0 * center);
 }
 
 void simulate(){
-    // Simulate Array A and B
+    // Simulation: Apply Gray-Scott model to array A and B
     for(int r = 0; r < ROWS; r++){
         for(int c = 0; c < COLS; c++){
             float lapA = getLaplacian(A, r, c);
@@ -55,37 +74,58 @@ void simulate(){
     // Copy back to original
     memcpy(A, Anext, sizeof(A));
     memcpy(B, Bnext, sizeof(B));
+}
 
-    // Print new arrays
-    printArray(A, "\nArray A (New):\n");
-    printArray(B, "\nArray B (New):\n");
+void render(Uint32 *pixels){
+    for(int r = 0; r < ROWS; r++){
+        for(int c = 0; c < COLS; c++){
+            Uint8 col = B[r][c] > 0.1 ? 0 : 255;
+            //Uint8 col = (Uint8)(A[r][c] * 255);
+
+            // Modify RGB pack to change colour
+            pixels[r * COLS + c] = (255 << 24) | (col << 16) | (col << 8) | col;
+        }
+    }
 }
 
 int main(int argc, char *argv[]){
-    // Initialize arrays
-    srand(time(NULL));
-    for(int r = 0; r < ROWS; r++){
-        for(int c = 0; c < COLS; c++){
-            A[r][c] = 1;
-            B[r][c] = 0;
-            B[1][1] = 0.5;
-            Anext[r][c] = Bnext[r][c] = 0;
+    // SDL variables
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Texture *texture = NULL;
+    SDL_Init(SDL_INIT_VIDEO);
 
-            //if(((rand() % 100) + 1) < 5){
-            //    A[r][c] = 0;
-            //    B[r][c] = 1;
-            //}
-        }
-    }
+    window = SDL_CreateWindow("reaction-diffusion-system", WIDTH, HEIGHT, 0);
+    if (!window) { SDL_Log("Window error: %s", SDL_GetError()); SDL_Quit(); return 1; }
 
-    // Print Original Arrays
-    printArray(A, "\nArray A (Original):\n");
-    printArray(B, "\nArray B (Original):\n");
+    renderer = SDL_CreateRenderer(window, NULL);
+    if (!renderer) { SDL_Log("Renderer error: %s", SDL_GetError()); SDL_Quit(); return 1; }
+
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+    if (!texture) { SDL_Log("Texture error: %s", SDL_GetError()); SDL_Quit(); return 1; }
+
+    initialize_arrays();
 
     // Simulation Loop
-    for (int i = 0; i <= 3; i++){
+    int running = 1;
+    while(running){
+        SDL_Event e;
+        while(SDL_PollEvent(&e)){
+            if(e.type == SDL_EVENT_QUIT) running = 0;
+        }
+
         simulate();
+        render(pixels);
+
+        SDL_RenderClear(renderer);
+        SDL_UpdateTexture(texture, NULL, pixels, COLS * sizeof(Uint32));
+        SDL_RenderTexture(renderer, texture, NULL, NULL);
+        SDL_RenderPresent(renderer);
     }
 
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
 }

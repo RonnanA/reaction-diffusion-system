@@ -1,0 +1,37 @@
+-- Modify these values in main.c to explore new patterns --
+
+Mitosis
+#define DIFF_A 0.2097
+#define DIFF_B 0.105
+#define FEED 0.028
+#define KILL 0.053
+
+oral growth
+#define DIFF_A 0.2097
+#define DIFF_B 0.105
+#define FEED 0.058
+#define KILL 0.065
+
+Maze/labyrinth (Default)
+#define DIFF_A 0.2097
+#define DIFF_B 0.105
+#define FEED 0.054
+#define KILL 0.062
+
+Pulsing spots
+#define DIFF_A 0.2097
+#define DIFF_B 0.105
+#define FEED 0.035
+#define KILL 0.060
+
+haoti/unstable
+#define DIFF_A 0.2097
+#define DIFF_B 0.105
+#define FEED 0.026
+#define KILL 0.051
+
+Fingerprint
+#define DIFF_A 0.2097
+#define DIFF_B 0.105
+#define FEED 0.037
+#define KILL 0.060
